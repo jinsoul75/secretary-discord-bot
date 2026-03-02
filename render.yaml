@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: personal-discord-bot
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: REMINDER_CHANNEL_ID
+        sync: false
+      - key: REMINDER_TIMEZONE
+        value: Asia/Seoul
+      - key: REMINDER_HOUR
+        value: "9"
+      - key: REMINDER_MINUTE
+        value: "0"
