@@ -1,15 +1,33 @@
 # personal-discord-bot (Vercel)
 
-Discord Interactions(Webhook) 방식으로 동작하는 TODO/일정 AI 봇입니다.
+Discord Interactions(Webhook) 방식으로 동작하는 TODO/목표 관리 AI 봇입니다.
 
 ## 명령어
 - `/add type:<todo|schedule> ...`
 - `/todo_list`
 - `/todo_done`
 - `/schedule_list`
+- `/goal_add`
+- `/goal_list`
+- `/todo_link`
+- `/today`
 - `/gcal_add date:<YYYY-MM-DD> summary:<제목> description:<선택>`
 - `/gcal_list date:<YYYY-MM-DD>`
 - `/ask`
+
+## 아침 7시 리마인드 + 명언
+- `vercel.json`의 Cron이 `/api/cron-reminder`를 매일 실행합니다.
+- 스케줄 `0 22 * * *`는 KST 오전 7시입니다.
+- 전송 내용:
+  - 오늘 마감 TODO
+  - 오늘 일정
+  - 이번 주/월 목표 연결 TODO
+  - 랜덤 명언 1개
+
+필수 환경변수:
+- `REMINDER_CHANNEL_ID`
+- `REMINDER_TIMEZONE` (기본 `Asia/Seoul`)
+- `CRON_SECRET` (권장)
 
 ## 로컬 준비
 ```bash
@@ -37,25 +55,20 @@ npm run register:commands
 - `KV_REST_API_URL`, `KV_REST_API_TOKEN` (권장)
 - `GCAL_SERVICE_ACCOUNT_EMAIL`, `GCAL_PRIVATE_KEY`, `GCAL_CALENDAR_ID`
 - `GCAL_TIMEZONE`, `GCAL_TZ_OFFSET` (선택)
+- `REMINDER_CHANNEL_ID`, `REMINDER_TIMEZONE`, `CRON_SECRET`
 4. Deploy
-5. 배포 URL 확인 (예: `https://<project>.vercel.app`)
-6. Discord Developer Portal -> `General Information` -> `Interactions Endpoint URL`에 아래 입력
+5. `Interactions Endpoint URL` 설정
 - `https://<project>.vercel.app/api/interactions`
-7. 저장 후 `npm run register:commands` 다시 실행
 
 ## Google Calendar 연결 (서비스 계정)
 1. Google Cloud에서 서비스 계정 생성
 2. 서비스 계정 키(JSON) 발급
 3. 아래 값을 환경변수에 입력
 - `GCAL_SERVICE_ACCOUNT_EMAIL`: JSON의 `client_email`
-- `GCAL_PRIVATE_KEY`: JSON의 `private_key` (줄바꿈은 `\n`로 넣기)
+- `GCAL_PRIVATE_KEY`: JSON의 `private_key` (`\n` 형태)
 - `GCAL_CALENDAR_ID`: 연결할 캘린더 ID
-4. Google Calendar 공유 설정에서 해당 서비스 계정 이메일에 캘린더 권한(수정자 이상) 부여
+4. Google Calendar 공유 설정에서 서비스 계정 이메일에 캘린더 권한(수정자 이상) 부여
 
 ## 데이터 저장
 - 운영(Vercel): `@vercel/kv` 사용
 - 로컬 개발: `data/planner.json` fallback 사용
-
-## 주의
-- 기존 Gateway(`discord.js login`) 봇과 달리, Vercel 배포에선 프로세스 상시 실행이 필요 없습니다.
-- 리마인더 같은 주기 작업은 Vercel Cron 또는 외부 스케줄러로 별도 구성해야 합니다.
