@@ -1,5 +1,4 @@
 import { InteractionType, InteractionResponseType, verifyKey } from 'discord-interactions';
-import { handleApplicationCommand } from '../src/interaction-handler.js';
 
 export const config = {
   api: {
@@ -31,8 +30,10 @@ export default async function handler(req, res) {
     return;
   }
 
-  const signature = req.headers['x-signature-ed25519'];
-  const timestamp = req.headers['x-signature-timestamp'];
+  const signatureHeader = req.headers['x-signature-ed25519'];
+  const timestampHeader = req.headers['x-signature-timestamp'];
+  const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
+  const timestamp = Array.isArray(timestampHeader) ? timestampHeader[0] : timestampHeader;
   const rawBody = await readRawBody(req);
 
   if (!signature || !timestamp) {
@@ -40,7 +41,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const isValidRequest = verifyKey(rawBody, signature, timestamp, publicKey);
+  const isValidRequest = await verifyKey(rawBody, signature, timestamp, publicKey);
   if (!isValidRequest) {
     console.error('Signature verification failed', {
       hasSignature: Boolean(signature),
@@ -59,6 +60,7 @@ export default async function handler(req, res) {
   }
 
   if (interaction.type === InteractionType.APPLICATION_COMMAND) {
+    const { handleApplicationCommand } = await import('../src/interaction-handler.js');
     const response = await handleApplicationCommand(interaction, process.env);
     res.status(200).json(response);
     return;
