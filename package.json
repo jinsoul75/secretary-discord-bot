@@ -9,10 +9,11 @@
     "register:commands": "node scripts/register-commands.js"
   },
   "dependencies": {
-    "@vercel/kv": "^3.0.0",
     "@google/genai": "^1.43.0",
-    "discord.js": "^14.18.0",
+    "@vercel/kv": "^3.0.0",
     "discord-interactions": "^4.4.0",
-    "dotenv": "^16.4.5"
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0"
   }
 }

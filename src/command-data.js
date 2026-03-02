@@ -60,6 +60,36 @@ export const commandData = [
         .setRequired(false)
     ),
   new SlashCommandBuilder()
+    .setName('gcal_add')
+    .setDescription('Google Calendar에 종일 일정을 추가합니다')
+    .addStringOption((option) =>
+      option
+        .setName('date')
+        .setDescription('날짜 (예: 2026-03-05)')
+        .setRequired(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName('summary')
+        .setDescription('일정 제목')
+        .setRequired(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName('description')
+        .setDescription('일정 설명')
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
+    .setName('gcal_list')
+    .setDescription('Google Calendar 일정 조회')
+    .addStringOption((option) =>
+      option
+        .setName('date')
+        .setDescription('날짜 (예: 2026-03-05)')
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
     .setName('ask')
     .setDescription('TODO/일정을 바탕으로 AI에게 질문합니다')
     .addStringOption((option) =>

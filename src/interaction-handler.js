@@ -1,5 +1,9 @@
 import { askPlannerAI } from './ai.js';
 import {
+  addGoogleCalendarAllDayEvent,
+  listGoogleCalendarEventsByDate
+} from './google-calendar.js';
+import {
   addTodo,
   listTodos,
   completeTodo,
@@ -106,6 +110,48 @@ export async function handleApplicationCommand(interaction, env) {
 
     const lines = schedules.map((item) => `- [${item.id}] ${item.date}: ${item.content}`);
     return textResponse(`일정 목록:\n${lines.join('\n')}`);
+  }
+
+  if (name === 'gcal_add') {
+    const date = getOptionValue(options, 'date');
+    const summary = getOptionValue(options, 'summary');
+    const description = getOptionValue(options, 'description') ?? '';
+
+    if (!date || !isValidDateInput(date)) {
+      return textResponse('date는 YYYY-MM-DD 형식이어야 합니다. 예: 2026-03-05', true);
+    }
+    if (!summary) {
+      return textResponse('summary는 필수입니다.', true);
+    }
+
+    try {
+      const event = await addGoogleCalendarAllDayEvent({
+        date,
+        summary,
+        description,
+        env
+      });
+      return textResponse(`Google Calendar 추가 완료: ${event.summary || summary} (${date})`);
+    } catch (error) {
+      return textResponse(`Google Calendar 추가 실패: ${error.message}`, true);
+    }
+  }
+
+  if (name === 'gcal_list') {
+    const date = getOptionValue(options, 'date');
+    if (!date || !isValidDateInput(date)) {
+      return textResponse('date는 YYYY-MM-DD 형식이어야 합니다. 예: 2026-03-05', true);
+    }
+
+    try {
+      const { lines } = await listGoogleCalendarEventsByDate({ date, env });
+      if (!lines.length) {
+        return textResponse(`${date} Google Calendar 일정이 없습니다.`);
+      }
+      return textResponse(`Google Calendar 일정 (${date}):\n${lines.join('\n')}`);
+    } catch (error) {
+      return textResponse(`Google Calendar 조회 실패: ${error.message}`, true);
+    }
   }
 
   if (name === 'ask') {
