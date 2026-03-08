@@ -13,6 +13,7 @@ import {
   addGoal,
   listGoals,
   listOpenTodosByGoal,
+  listOpenTodosByDueDate,
   getPlannerContext
 } from './storage.js';
 
@@ -34,6 +35,18 @@ function isValidDateInput(value) {
 
 function getOptionValue(options, name) {
   return options?.find((option) => option.name === name)?.value;
+}
+
+function formatDaySummary({ date, calendarLines, todoLines }) {
+  return [
+    `일정 요약 (${date})`,
+    '',
+    'Google Calendar',
+    ...(calendarLines.length ? calendarLines : ['- 일정 없음']),
+    '',
+    'TODO',
+    ...(todoLines.length ? todoLines : ['- 해당 날짜 마감 TODO 없음'])
+  ].join('\n');
 }
 
 function getDatePartsInTimeZone(timeZone) {
@@ -204,6 +217,34 @@ export async function handleApplicationCommand(interaction, env) {
       return textResponse(`Google Calendar 일정 (${date}):\n${lines.join('\n')}`);
     } catch (error) {
       return textResponse(`Google Calendar 조회 실패: ${error.message}`, true);
+    }
+  }
+
+  if (name === 'day_summary') {
+    const date = getOptionValue(options, 'date');
+    if (!date || !isValidDateInput(date)) {
+      return textResponse('date는 YYYY-MM-DD 형식이어야 합니다. 예: 2026-03-05', true);
+    }
+
+    const todos = await listOpenTodosByDueDate(date);
+    const todoLines = todos.map((todo) => `- [${todo.id}] ${todo.title}`);
+
+    try {
+      const { lines } = await listGoogleCalendarEventsByDate({ date, env });
+      return textResponse(formatDaySummary({
+        date,
+        calendarLines: lines,
+        todoLines
+      }));
+    } catch (error) {
+      return textResponse(
+        formatDaySummary({
+          date,
+          calendarLines: [`- Google Calendar 조회 실패: ${error.message}`],
+          todoLines
+        }),
+        true
+      );
     }
   }
 

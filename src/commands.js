@@ -8,12 +8,26 @@ import {
   completeTodo,
   addSchedule,
   listSchedules,
+  listOpenTodosByDueDate,
   getPlannerContext
 } from './storage.js';
 import { askPlannerAI } from './ai.js';
+import { listGoogleCalendarEventsByDate } from './google-calendar.js';
 
 function isValidDateInput(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function formatDaySummary({ date, calendarLines, todoLines }) {
+  return [
+    `일정 요약 (${date})`,
+    '',
+    'Google Calendar',
+    ...(calendarLines.length ? calendarLines : ['- 일정 없음']),
+    '',
+    'TODO',
+    ...(todoLines.length ? todoLines : ['- 해당 날짜 마감 TODO 없음'])
+  ].join('\n');
 }
 
 export const commandData = [
@@ -89,6 +103,15 @@ export const commandData = [
         .setName('date')
         .setDescription('특정 날짜만 조회 (예: 2026-03-05)')
         .setRequired(false)
+    ),
+  new SlashCommandBuilder()
+    .setName('day_summary')
+    .setDescription('특정 날짜의 Google Calendar 일정과 TODO를 함께 조회합니다')
+    .addStringOption((option) =>
+      option
+        .setName('date')
+        .setDescription('날짜 (예: 2026-03-05)')
+        .setRequired(true)
     ),
   new SlashCommandBuilder()
     .setName('ask')
@@ -212,6 +235,41 @@ export async function handleCommand(interaction, env) {
 
     const lines = schedules.map((item) => `- [${item.id}] ${item.date}: ${item.content}`);
     await interaction.reply(`일정 목록:\n${lines.join('\n')}`);
+    return;
+  }
+
+  if (name === 'day_summary') {
+    const date = interaction.options.getString('date', true);
+
+    if (!isValidDateInput(date)) {
+      await interaction.reply({
+        content: 'date는 YYYY-MM-DD 형식이어야 합니다. 예: 2026-03-05',
+        flags: MessageFlags.Ephemeral
+      });
+      return;
+    }
+
+    const todos = await listOpenTodosByDueDate(date);
+    const todoLines = todos.map((todo) => `- [${todo.id}] ${todo.title}`);
+
+    try {
+      const { lines } = await listGoogleCalendarEventsByDate({ date, env });
+      await interaction.reply(formatDaySummary({
+        date,
+        calendarLines: lines,
+        todoLines
+      }));
+    } catch (error) {
+      await interaction.reply({
+        content: formatDaySummary({
+          date,
+          calendarLines: [`- Google Calendar 조회 실패: ${error.message}`],
+          todoLines
+        }),
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
     return;
   }
 

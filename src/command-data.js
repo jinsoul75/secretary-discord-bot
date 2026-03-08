@@ -90,6 +90,15 @@ export const commandData = [
         .setRequired(true)
     ),
   new SlashCommandBuilder()
+    .setName('day_summary')
+    .setDescription('특정 날짜의 Google Calendar 일정과 TODO를 함께 조회합니다')
+    .addStringOption((option) =>
+      option
+        .setName('date')
+        .setDescription('날짜 (예: 2026-03-05)')
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
     .setName('goal_add')
     .setDescription('주간/월간 목표를 등록합니다')
     .addStringOption((option) =>

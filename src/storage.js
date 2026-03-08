@@ -205,6 +205,13 @@ export async function listOpenTodosByGoal(scope, key) {
   return store.todos.filter((todo) => !todo.done && todo.goalScope === scope && todo.goalKey === key);
 }
 
+export async function listOpenTodosByDueDate(dueDate) {
+  const store = await readStore();
+  return store.todos
+    .filter((todo) => !todo.done && todo.dueDate === dueDate)
+    .sort((a, b) => a.id - b.id);
+}
+
 export async function getPlannerContext() {
   const store = await readStore();
   const openTodos = store.todos.filter((item) => !item.done);
