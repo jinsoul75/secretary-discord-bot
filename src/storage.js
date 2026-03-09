@@ -15,7 +15,11 @@ function initialStore() {
     nextGoalId: 1,
     todos: [],
     schedules: [],
-    goals: []
+    goals: [],
+    googleTasksAuth: {
+      oauthState: null,
+      tokens: null
+    }
   };
 }
 
@@ -26,7 +30,11 @@ function normalizeStore(raw) {
     ...raw,
     todos: Array.isArray(raw?.todos) ? raw.todos : [],
     schedules: Array.isArray(raw?.schedules) ? raw.schedules : [],
-    goals: Array.isArray(raw?.goals) ? raw.goals : []
+    goals: Array.isArray(raw?.goals) ? raw.goals : [],
+    googleTasksAuth: {
+      oauthState: raw?.googleTasksAuth?.oauthState ?? null,
+      tokens: raw?.googleTasksAuth?.tokens ?? null
+    }
   };
 
   store.todos = store.todos.map((todo) => ({
@@ -224,4 +232,38 @@ export async function getPlannerContext() {
     schedules: sortedSchedules,
     goals: store.goals
   };
+}
+
+export async function setGoogleTasksOauthState(state) {
+  const store = await readStore();
+  store.googleTasksAuth.oauthState = state;
+  await writeStore(store);
+}
+
+export async function getGoogleTasksOauthState() {
+  const store = await readStore();
+  return store.googleTasksAuth.oauthState;
+}
+
+export async function clearGoogleTasksOauthState() {
+  const store = await readStore();
+  store.googleTasksAuth.oauthState = null;
+  await writeStore(store);
+}
+
+export async function setGoogleTasksTokens(tokens) {
+  const store = await readStore();
+  store.googleTasksAuth.tokens = tokens;
+  await writeStore(store);
+}
+
+export async function getGoogleTasksTokens() {
+  const store = await readStore();
+  return store.googleTasksAuth.tokens;
+}
+
+export async function clearGoogleTasksTokens() {
+  const store = await readStore();
+  store.googleTasksAuth.tokens = null;
+  await writeStore(store);
 }

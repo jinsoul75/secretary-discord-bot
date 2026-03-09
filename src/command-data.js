@@ -82,7 +82,7 @@ export const commandData = [
     ),
   new SlashCommandBuilder()
     .setName('gcal_list')
-    .setDescription('Google Calendar 일정과 TODO를 함께 조회')
+    .setDescription('Google Calendar, Google Tasks, TODO를 함께 조회')
     .addStringOption((option) =>
       option
         .setName('date')
@@ -90,8 +90,11 @@ export const commandData = [
         .setRequired(true)
     ),
   new SlashCommandBuilder()
+    .setName('gtasks_auth')
+    .setDescription('Google Tasks 연동 로그인 링크를 받습니다'),
+  new SlashCommandBuilder()
     .setName('day_summary')
-    .setDescription('특정 날짜의 Google Calendar 일정과 TODO를 함께 조회합니다')
+    .setDescription('특정 날짜의 Calendar, Tasks, TODO를 함께 조회합니다')
     .addStringOption((option) =>
       option
         .setName('date')

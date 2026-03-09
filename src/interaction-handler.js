@@ -4,6 +4,12 @@ import {
   listGoogleCalendarEventsByDate
 } from './google-calendar.js';
 import {
+  buildGoogleTasksAuthUrl,
+  createGoogleTasksOAuthState,
+  isGoogleTasksConfigured,
+  listGoogleTasksByDate
+} from './google-tasks.js';
+import {
   addTodo,
   listTodos,
   completeTodo,
@@ -14,6 +20,8 @@ import {
   listGoals,
   listOpenTodosByGoal,
   listOpenTodosByDueDate,
+  getGoogleTasksTokens,
+  setGoogleTasksOauthState,
   getPlannerContext
 } from './storage.js';
 
@@ -37,12 +45,15 @@ function getOptionValue(options, name) {
   return options?.find((option) => option.name === name)?.value;
 }
 
-function formatDaySummary({ date, calendarLines, todoLines }) {
+function formatDaySummary({ date, calendarLines, tasksLines, todoLines }) {
   return [
     `일정 요약 (${date})`,
     '',
     'Google Calendar',
     ...(calendarLines.length ? calendarLines : ['- 일정 없음']),
+    '',
+    'Google Tasks',
+    ...(tasksLines.length ? tasksLines : ['- 해당 날짜 할 일 없음']),
     '',
     'TODO',
     ...(todoLines.length ? todoLines : ['- 해당 날짜 마감 TODO 없음'])
@@ -52,12 +63,28 @@ function formatDaySummary({ date, calendarLines, todoLines }) {
 async function buildDaySummaryResponse(date, env, ephemeralOnCalendarError = false) {
   const todos = await listOpenTodosByDueDate(date);
   const todoLines = todos.map((todo) => `- [${todo.id}] ${todo.title}`);
+  let tasksLines = [];
+
+  if (isGoogleTasksConfigured(env)) {
+    const tokens = await getGoogleTasksTokens();
+    if (tokens) {
+      try {
+        const tasksResult = await listGoogleTasksByDate({ env, tokens, date });
+        tasksLines = tasksResult.lines;
+      } catch (error) {
+        tasksLines = [`- Google Tasks 조회 실패: ${error.message}`];
+      }
+    } else {
+      tasksLines = ['- Google Tasks 미연동 (/gtasks_auth 필요)'];
+    }
+  }
 
   try {
     const { lines } = await listGoogleCalendarEventsByDate({ date, env });
     return textResponse(formatDaySummary({
       date,
       calendarLines: lines,
+      tasksLines,
       todoLines
     }));
   } catch (error) {
@@ -65,6 +92,7 @@ async function buildDaySummaryResponse(date, env, ephemeralOnCalendarError = fal
       formatDaySummary({
         date,
         calendarLines: [`- Google Calendar 조회 실패: ${error.message}`],
+        tasksLines,
         todoLines
       }),
       ephemeralOnCalendarError
@@ -233,6 +261,23 @@ export async function handleApplicationCommand(interaction, env) {
     }
 
     return buildDaySummaryResponse(date, env, true);
+  }
+
+  if (name === 'gtasks_auth') {
+    if (!isGoogleTasksConfigured(env)) {
+      return textResponse(
+        'Google Tasks OAuth 설정이 없습니다. GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI를 설정하세요.',
+        true
+      );
+    }
+
+    const state = createGoogleTasksOAuthState();
+    await setGoogleTasksOauthState({
+      value: state,
+      createdAt: new Date().toISOString()
+    });
+    const authUrl = buildGoogleTasksAuthUrl({ env, state });
+    return textResponse(`Google Tasks 연동 링크:\n${authUrl}`, true);
   }
 
   if (name === 'day_summary') {
