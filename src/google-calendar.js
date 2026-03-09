@@ -6,6 +6,12 @@ function getNextDate(dateStr) {
   return next.toISOString().slice(0, 10);
 }
 
+function getPrevDate(dateStr) {
+  const base = new Date(`${dateStr}T00:00:00Z`);
+  const prev = new Date(base.getTime() - 24 * 60 * 60 * 1000);
+  return prev.toISOString().slice(0, 10);
+}
+
 function getCalendarClient(env) {
   const email = env.GCAL_SERVICE_ACCOUNT_EMAIL;
   const privateKeyRaw = env.GCAL_PRIVATE_KEY;
@@ -54,6 +60,40 @@ function formatEvent(event, timeZone) {
   return `- ${event.summary || '(제목 없음)'}`;
 }
 
+function getDateStringInTimeZone(value, timeZone) {
+  const date = new Date(value);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  return `${year}-${month}-${day}`;
+}
+
+function eventOccursOnDate(event, targetDate, timeZone) {
+  if (event.start?.date) {
+    const startDate = event.start.date;
+    const endDateExclusive = event.end?.date || getNextDate(startDate);
+    return startDate <= targetDate && targetDate < endDateExclusive;
+  }
+
+  if (event.start?.dateTime && event.end?.dateTime) {
+    const startDate = getDateStringInTimeZone(event.start.dateTime, timeZone);
+    const endDate = getDateStringInTimeZone(
+      new Date(new Date(event.end.dateTime).getTime() - 1).toISOString(),
+      timeZone
+    );
+    return startDate <= targetDate && targetDate <= endDate;
+  }
+
+  return false;
+}
+
 export async function addGoogleCalendarAllDayEvent({ date, summary, description = '', env }) {
   const { calendar, calendarId } = getCalendarClient(env);
 
@@ -74,18 +114,19 @@ export async function listGoogleCalendarEventsByDate({ date, env }) {
   const { calendar, calendarId } = getCalendarClient(env);
   const timeZone = env.GCAL_TIMEZONE || 'Asia/Seoul';
   const offset = env.GCAL_TZ_OFFSET || '+09:00';
+  const prevDate = getPrevDate(date);
   const nextDate = getNextDate(date);
 
   const response = await calendar.events.list({
     calendarId,
     singleEvents: true,
     orderBy: 'startTime',
-    timeMin: `${date}T00:00:00${offset}`,
+    timeMin: `${prevDate}T00:00:00${offset}`,
     timeMax: `${nextDate}T00:00:00${offset}`,
     maxResults: 50
   });
 
-  const items = response.data.items ?? [];
+  const items = (response.data.items ?? []).filter((item) => eventOccursOnDate(item, date, timeZone));
   return {
     items,
     lines: items.map((item) => formatEvent(item, timeZone))
