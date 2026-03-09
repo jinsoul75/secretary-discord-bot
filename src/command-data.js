@@ -82,7 +82,7 @@ export const commandData = [
     ),
   new SlashCommandBuilder()
     .setName('gcal_list')
-    .setDescription('Google Calendar 일정 조회')
+    .setDescription('Google Calendar 일정과 TODO를 함께 조회')
     .addStringOption((option) =>
       option
         .setName('date')

@@ -49,6 +49,29 @@ function formatDaySummary({ date, calendarLines, todoLines }) {
   ].join('\n');
 }
 
+async function buildDaySummaryResponse(date, env, ephemeralOnCalendarError = false) {
+  const todos = await listOpenTodosByDueDate(date);
+  const todoLines = todos.map((todo) => `- [${todo.id}] ${todo.title}`);
+
+  try {
+    const { lines } = await listGoogleCalendarEventsByDate({ date, env });
+    return textResponse(formatDaySummary({
+      date,
+      calendarLines: lines,
+      todoLines
+    }));
+  } catch (error) {
+    return textResponse(
+      formatDaySummary({
+        date,
+        calendarLines: [`- Google Calendar 조회 실패: ${error.message}`],
+        todoLines
+      }),
+      ephemeralOnCalendarError
+    );
+  }
+}
+
 function getDatePartsInTimeZone(timeZone) {
   const now = new Date();
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -209,15 +232,7 @@ export async function handleApplicationCommand(interaction, env) {
       return textResponse('date는 YYYY-MM-DD 형식이어야 합니다. 예: 2026-03-05', true);
     }
 
-    try {
-      const { lines } = await listGoogleCalendarEventsByDate({ date, env });
-      if (!lines.length) {
-        return textResponse(`${date} Google Calendar 일정이 없습니다.`);
-      }
-      return textResponse(`Google Calendar 일정 (${date}):\n${lines.join('\n')}`);
-    } catch (error) {
-      return textResponse(`Google Calendar 조회 실패: ${error.message}`, true);
-    }
+    return buildDaySummaryResponse(date, env, true);
   }
 
   if (name === 'day_summary') {
@@ -226,26 +241,7 @@ export async function handleApplicationCommand(interaction, env) {
       return textResponse('date는 YYYY-MM-DD 형식이어야 합니다. 예: 2026-03-05', true);
     }
 
-    const todos = await listOpenTodosByDueDate(date);
-    const todoLines = todos.map((todo) => `- [${todo.id}] ${todo.title}`);
-
-    try {
-      const { lines } = await listGoogleCalendarEventsByDate({ date, env });
-      return textResponse(formatDaySummary({
-        date,
-        calendarLines: lines,
-        todoLines
-      }));
-    } catch (error) {
-      return textResponse(
-        formatDaySummary({
-          date,
-          calendarLines: [`- Google Calendar 조회 실패: ${error.message}`],
-          todoLines
-        }),
-        true
-      );
-    }
+    return buildDaySummaryResponse(date, env, true);
   }
 
   if (name === 'goal_add') {
